@@ -1,0 +1,105 @@
+<div class="layui-layout layui-layout-admin" style="padding-left: 20px;">
+    <div class="layui-row" style="margin-top: 20px;">
+        <div class="layui-col-xs6">
+            <a {{if Permission .userid "roleadd"}}class="layui-btn" href="/role/add"{{else}}class="layui-btn layui-btn-disabled"{{end}} data-type="tabAdd" >新增</a>
+        </div>
+        <div class="layui-col-xs6 search_text">
+            <form class="layui-form" action="" onsubmit="javascript:return false;">
+                <div class="demoTable">
+                    <div class="layui-inline" style="width: 40%">
+                        <input class="layui-input" name="name" id="name" autocomplete="off" placeholder="角色名称" >
+                    </div>
+                    <button class="layui-btn" data-type="reload">查询</button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <table class="layui-hide" id="table_list" lay-filter="table_filter">
+    </table>
+
+    <script type="text/html" id="bar">
+        <a {{if Permission .userid "roleedit"}}class="layui-btn layui-btn-xs" lay-event="edit"{{else}}class="layui-btn layui-btn-xs layui-btn-disabled"{{end}}>编辑</a>
+        <a {{if Permission .userid "roledel"}}class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del"{{else}}class="layui-btn layui-btn-danger layui-btn-xs layui-btn-disabled"{{end}}>删除</a>
+
+    </script>
+</div>
+<script>
+
+    layui.use(['table','form','element'], function(){
+        var table = layui.table;
+        var form = layui.form;
+        var element = layui.element;
+
+        var error_info = "{{.flash.error}}";
+        if(error_info){
+            layer.msg(error_info,{icon: 2,shade:0.3},function () {
+                window.history.go(-1)
+            })
+            return;
+        }
+
+        //方法级渲染
+        table.render({
+            elem: '#table_list'
+            ,url: '/role/table'
+            ,cols: [[
+                {field:'id', title: 'ID', align:'center',sort: true, width:150}
+                ,{field:'name',title: '角色'}
+                ,{field:'memo',title: '备注'}
+                ,{fixed: 'right', width:160, align:'center', toolbar: '#bar'}
+            ]]
+            ,id: 'listReload'
+            ,page: true
+            ,height: "full-130"
+            ,text:{
+                none:"暂无相关数据"
+            }
+        });
+
+        var $ = layui.$, active = {
+            reload: function(){
+                table.reload('listReload', {
+                    where: {
+                        name: $('#name').val(),
+                    }
+                });
+            }
+        };
+
+        //监听工具条
+        table.on('tool(table_filter)', function(obj){
+            var data = obj.data;
+            console.dir(data);
+            if(obj.event === 'edit'){
+                window.location.href="/role/edit?id="+data.id
+            } else if(obj.event === 'del'){
+                acts = "删除"
+                layer.confirm('真的'+acts+'【'+data.name+'】角色么', function(index){
+                    var jsData = {'id':data.id}
+                    $.post('{{urlfor "RoleController.AjaxDel"}}', jsData, function (out) {
+                        if (out.status == 0) {
+                            layer.alert(out.msg, {icon: 1},function(index){
+                                layer.close(index);
+                                window.location.reload();
+                            });
+                        } else {
+                            layer.msg(out.msg)
+                        }
+                    }, "json");
+                    layer.close(index);
+                })
+
+            }else{
+                layer.msg('操作不存在');
+            }
+        });
+
+        $('.demoTable .layui-btn').on('click', function(){
+            var type = $(this).data('type');
+            active[type] ? active[type].call(this) : '';
+        });
+    });
+
+</script>

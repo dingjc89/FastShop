@@ -1,0 +1,138 @@
+<script type="text/javascript" src="/static/admin/js/jquery.min.js"></script>
+<script type="text/javascript" src="/static/zTree3/js/jquery.ztree.core.js"></script>
+<script type="text/javascript" src="/static/zTree3/js/jquery.ztree.excheck.js"></script>
+<script type="text/javascript" src="/static/zTree3/js/jquery.ztree.exedit.js"></script>
+
+<div class="layui-row">
+    <div style="margin: 10px 20px">
+        <blockquote class="layui-elem-quote">
+            说明：新增角色
+        </blockquote>
+    </div>
+
+    <div class="layui-col-md12">
+        <div class="layui-layout layui-layout-admin" style="padding-left: 40px;margin-top: 20px;">
+            <form class="layui-form" action="" onsubmit="javascript:;" name="form" method="post">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">菜单操作</label>
+                    <div class="layui-input-inline mw400 zTreeDemoBackground">
+                        <ul id="treeDemo" class="ztree" style="height:320px; width: auto; margin-bottom: 10px;">
+                        </ul>
+                    </div>
+                    <div class="layui-form-mid layui-word-aux"></div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">角色名称</label>
+                    <div class="layui-input-inline mw400">
+                        <input type="text" name="name" id="name" lay-verify="required" autocomplete="off"
+                               placeholder="请输入角色名称" class="layui-input">
+                    </div>
+                    <div class="layui-form-mid layui-word-aux"></div>
+                </div>
+
+                <div class="layui-form-item layui-form-text">
+                    <label class="layui-form-label ">备注</label>
+                    <div class="layui-input-inline mw400">
+                        <textarea name="detail" id="detail" placeholder="请输入内容" class="layui-textarea"></textarea>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <div class="layui-input-block">
+                        <button class="layui-btn" lay-submit="" lay-filter="save">保存</button>
+                        <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+<script>
+    var $, form;
+    layui.config({
+        base: "js/"
+    }).use(['form', 'element', 'layer', 'jquery'], function () {
+        form = layui.form; //只有执行了这一步，部分表单元素才会自动修饰成功
+        $ = layui.jquery;
+
+        var error_info = "{{.flash.error}}";
+        if (error_info) {
+            layer.msg(error_info, {icon: 2, shade: 0.3}, function () {
+                window.history.go(-1)
+            })
+            return;
+        }
+        $("form").submit(function () {
+            var name = $("#name").val();
+            if (!name) {
+                layer.msg('请填写角色名称');
+                return false;
+            }
+            var detail = $("#detail").val();
+            var treeObj = $.fn.zTree.getZTreeObj("treeDemo");
+            var nodes = treeObj.getCheckedNodes(true);
+            var nodes_data = nodes_select_data(nodes);
+            if (nodes_data.length <= 0) {
+                layer.msg("至少选择一个权限")
+                return false
+            }
+
+            var data = {'name': name, 'detail': detail, 'checked': nodes_data}
+            $.post('{{urlfor "RoleController.AjaxSave"}}', data, function (out) {
+                if (out.status == 0) {
+                    layer.alert('保存成功了', {icon: 1}, function (index) {
+                        layer.close(index);
+                        window.location.href = "/role/list"
+                    });
+                } else {
+                    layer.msg(out.msg)
+                }
+            }, "json");
+            return false;
+        });
+
+        form.render();
+
+    });
+</script>
+<script type="application/javascript">
+    var zTreeObj;
+    var zNodes = {{.permissions}}
+    var checked = {{.checked}}
+    var setting = {
+        check: {
+            enable: true
+        },
+        data: {
+            simpleData: {
+                enable: true
+            }
+        }
+    };
+    $(document).ready(function () {
+        init_checked(zNodes)
+        zTreeObj = $.fn.zTree.init($("#treeDemo"), setting, zNodes);
+        zTreeObj.expandAll(true)
+    });
+
+    function init_checked(zNodes) {
+        $.each(zNodes, function (k, v) {
+            if ($.inArray(v.id, checked) >= 0) {
+                v.checked = true;
+            }
+
+        });
+        return zNodes;
+    }
+
+    function nodes_select_data(obj) {
+        var nodes_str = '';
+        $.each(obj, function (k, v) {
+            nodes_str += v['id'] + ","
+        });
+
+        return nodes_str;
+    }
+</script>
